@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(~/.platformio/penv/bin/pio run *)",
+      "Bash(node --check js/script.js)",
+      "Bash(node --check signglove/js/script.js)",
+      "Read(//dev/**)",
+      "Bash(~/.platformio/penv/bin/pio device *)",
+      "Bash(sudo modprobe ch341)",
+      "Bash(sudo dmesg)"
+    ]
+  }
+}
