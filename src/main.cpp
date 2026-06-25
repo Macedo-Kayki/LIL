@@ -28,8 +28,8 @@ int indiceFiltro[5] = {0, 0, 0, 0, 0};
 // INDICADOR: E:600 C:581 F:568 -> Meio:590 Dobrado:574
 // ANELAR: E:680 C:646 F:626 -> Meio:663 Dobrado:636
 // MINDINHO: E:620 C:610 F:586 -> Meio:615 Dobrado:598
-int limiarMeio[5]    = {447, 525, 0, 530, 577};    // Limite para virar "curvado" (valor <= limiar)
-int limiarDobrado[5] = {438, 510, 0, 490, 560};    // Limite para virar "fechado" (valor <= limiar)
+int limiarMeio[5]    = {449, 525, 0, 645, 615};    // Limite para virar "curvado" (valor <= limiar)
+int limiarDobrado[5] = {438, 510, 0, 620, 595};    // Limite para virar "fechado" (valor <= limiar)
 
 const bool MODO_CALIBRACAO = false;
 const bool USAR_MPU = true;  // Ignorar MPU por enquanto
@@ -47,32 +47,44 @@ const bool IGNORAR_MEDIO     = true; // Dedo médio com defeito, ignorar leitura
 #define MV_MOVENDO   1
 
 struct Letra {
-  char nome;
+  String nome;
   int  dedos[5];
   int  orient;
   int  mov;
 };
 
 Letra tabela[] = {
-  {'A', {    0,  8,  8,  8,  8},  OR_QUALQUER, MV_QUALQUER},
-  {'B', {    8,  0,  0,  0,  0},  OR_QUALQUER, MV_QUALQUER},
-  {'L', {    0,  0,  8,  8,  8},  OR_QUALQUER, MV_QUALQUER},
-  {'W', {    8,  0,  0,  0,  8},  OR_QUALQUER, MV_QUALQUER},
+  {"A", {    0,  8,  8,  8,  8},  OR_QUALQUER, MV_QUALQUER},
+  {"B", {    8,  0,  0,  0,  0},  OR_QUALQUER, MV_QUALQUER},
+  {"L", {    0,  0,  8,  8,  8},  OR_QUALQUER, MV_QUALQUER},
+  {"W", {    8,  0,  0,  0,  8},  OR_QUALQUER, MV_QUALQUER},
 
-  {'C', {    1,  1,  1,  1,  1},  OR_QUALQUER, MV_QUALQUER},
-  {'X', {    8,  1,  2,  2,  2},  OR_QUALQUER, MV_QUALQUER},
-  {'O', {    2,  2,  2,  2,  2},  OR_QUALQUER, MV_QUALQUER},
+  {"C", {    1,  1,  1,  1,  1},  OR_QUALQUER, MV_QUALQUER},
+  {"X", {    8,  1,  2,  2,  2},  OR_QUALQUER, MV_QUALQUER},
+  {"O", {    2,  2,  2,  2,  2},  OR_QUALQUER, MV_QUALQUER},
 
-  {'D', {    8,  0,  8,  8,  8},  OR_CIMA,     MV_PARADO},
-  {'Q', {    8,  0,  8,  8,  8},  OR_BAIXO,    MV_PARADO},
-  {'U', {    8,  0,  0,  8,  8},  OR_QUALQUER, MV_PARADO},
-  {'P', {    8,  0,  0,  8,  8},  OR_BAIXO,    MV_PARADO},
+  {"D", {    8,  0,  8,  8,  8},  OR_CIMA,     MV_PARADO},
+  {"Q", {    8,  0,  8,  8,  8},  OR_BAIXO,    MV_PARADO},
+  {"U", {    8,  0,  0,  8,  8},  OR_QUALQUER, MV_PARADO},
+  {"P", {    8,  0,  0,  8,  8},  OR_BAIXO,    MV_PARADO},
 
-  {'J', {    8,  8,  8,  8,  0},  OR_QUALQUER, MV_MOVENDO},
-  {'H', {    8,  0,  0,  8,  8},  OR_QUALQUER, MV_MOVENDO},
+  {"J", {    8,  8,  8,  8,  0},  OR_QUALQUER, MV_MOVENDO},
+  {"H", {    8,  0,  0,  8,  8},  OR_QUALQUER, MV_MOVENDO},
 
-  {'I', {    8,  8,  8,  8,  0},  OR_QUALQUER, MV_PARADO},
-  {'K', {    0,  0,  0,  1,  0},  OR_QUALQUER, MV_PARADO},  // Sinal "te amo"
+  {"I", {    8,  8,  8,  8,  0},  OR_QUALQUER, MV_PARADO},
+  {"te amo", {    0,  0,  0,  1,  0},  OR_QUALQUER, MV_PARADO},  // Sinal "te amo"
+
+  // Novos sinais de palavras
+  // IMPORTANTE: Os valores dos dedos (0, 1, 2, 8) e de orient/movimento abaixo 
+  // são apenas suposições para o código rodar. Você precisará ajustar os números
+  // conforme a leitura da sua luva fazendo cada um desses sinais (use o MODO_CALIBRACAO).
+  {"sim",      {    8,  8,  8,  8,  8},  OR_QUALQUER, MV_MOVENDO}, // Mão fechada + mov
+  {"como",     {    1,  1,  1,  8,  8},  OR_QUALQUER, MV_MOVENDO}, // Garras / movendo
+  {"onde",     {    8,  0,  8,  8,  8},  OR_LADO,     MV_PARADO},  // Só o indicador?
+  {"pare",     {    0,  0,  0,  0,  0},  OR_QUALQUER, MV_PARADO},  // Mão aberta / parada
+  {"ola",      {    0,  0,  0,  0,  0},  OR_QUALQUER, MV_MOVENDO}, // Mão aberta + mov
+  {"não",      {    8,  0,  0,  8,  8},  OR_LADO,     MV_MOVENDO}, // Balançando indicador/médio
+  {"obrigado", {    0,  0,  0,  0,  0},  OR_CIMA,     MV_PARADO},  // Mão aberta apontada p/ cima
 };
 
 const int N_LETRAS = sizeof(tabela) / sizeof(tabela[0]);
@@ -81,8 +93,8 @@ WebServer server(80);
 
 int   valDedos[5];
 int   estadoDedos[5];
-char  letraAtual = '?';
-char  letraConfirmada = '?';
+String  letraAtual = "?";
+String  letraConfirmada = "?";
 float roll = 0, pitch = 0;
 int16_t AcX, AcY, AcZ;
 int16_t GyX, GyY, GyZ;
@@ -98,7 +110,7 @@ const unsigned long JANELA_MOV = 500;
 
 unsigned long ultimoMovimento = 0;
 
-char  ultimaLeitura = '?';
+String  ultimaLeitura = "?";
 unsigned long tempoLeitura = 0;
 const unsigned long TEMPO_ESTAVEL = 250;
 
@@ -163,7 +175,7 @@ void lerMPU() {
   emMovimento = (millis() - ultimoMovimento) < JANELA_MOV;
 }
 
-char reconhecerLetra() {
+String reconhecerLetra() {
   int movAtual = emMovimento ? MV_MOVENDO : MV_PARADO;
 
   for (int l = 0; l < N_LETRAS; l++) {
@@ -188,7 +200,7 @@ char reconhecerLetra() {
 
     return tabela[l].nome;
   }
-  return '?';
+  return "?";
 }
 
 void atualizarLetraConfirmada() {
@@ -200,7 +212,7 @@ void atualizarLetraConfirmada() {
   }
 }
 
-char letraEnviada = ' ';
+String letraEnviada = "";
 unsigned long ultimoEnvioFB = 0;
 const unsigned long HEARTBEAT_FB = 2000;
 
@@ -239,8 +251,8 @@ void enviarFirebase() {
   }
 
   int code = httpsFB.PUT(body);
-  Serial.printf("Firebase: '%c' flex:%d mov:%d -> HTTP %d\n",
-                letraConfirmada, flexPct, movPct, code);
+  Serial.printf("Firebase: '%s' flex:%d mov:%d -> HTTP %d\n",
+                letraConfirmada.c_str(), flexPct, movPct, code);
   if (code <= 0) {
     httpsFB.end();
     fbIniciado = false;
