@@ -73,11 +73,6 @@ Letra tabela[] = {
 
   {"I", {    8,  8,  8,  8,  0},  OR_QUALQUER, MV_PARADO},
   {"te amo", {    0,  0,  0,  1,  0},  OR_QUALQUER, MV_PARADO},  // Sinal "te amo"
-
-  // Novos sinais de palavras
-  // IMPORTANTE: Os valores dos dedos (0, 1, 2, 8) e de orient/movimento abaixo 
-  // são apenas suposições para o código rodar. Você precisará ajustar os números
-  // conforme a leitura da sua luva fazendo cada um desses sinais (use o MODO_CALIBRACAO).
   {"sim",      {    8,  8,  8,  8,  8},  OR_QUALQUER, MV_MOVENDO}, // Mão fechada + mov
   {"como",     {    1,  1,  1,  8,  8},  OR_QUALQUER, MV_MOVENDO}, // Garras / movendo
   {"onde",     {    8,  0,  8,  8,  8},  OR_LADO,     MV_PARADO},  // Só o indicador?
