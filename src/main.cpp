@@ -20,19 +20,12 @@ const int MPU_ADDR = 0x68;
 int bufferFiltro[5][FILTRO_TAMANHO];
 int indiceFiltro[5] = {0, 0, 0, 0, 0};
 
-// Calibração com mão parada:
-// POL: 2100-2350 | IND: 730-800 | MED: 2280-2390 | ANE: 580-650 | MIN: 730-800
-// Limiares de calibração para sensores com leitura INVERTIDA.
-// Calculado a partir dos valores fornecidos pelo usuário.
-// POLEGAR: E:455 C:444 F:428 -> Meio:449 Dobrado:436
-// INDICADOR: E:600 C:581 F:568 -> Meio:590 Dobrado:574
-// ANELAR: E:680 C:646 F:626 -> Meio:663 Dobrado:636
-// MINDINHO: E:620 C:610 F:586 -> Meio:615 Dobrado:598
-int limiarMeio[5]    = {449, 525, 0, 645, 615};    // Limite para virar "curvado" (valor <= limiar)
-int limiarDobrado[5] = {438, 510, 0, 620, 595};    // Limite para virar "fechado" (valor <= limiar)
+// Variáveis para receber a calibração dinâmica
+int limiarMeio[5]    = {0, 0, 0, 0, 0};
+int limiarDobrado[5] = {0, 0, 0, 0, 0};
 
-const bool MODO_CALIBRACAO = false;
-const bool USAR_MPU = true;  // Ignorar MPU por enquanto
+const bool MODO_CALIBRACAO = true;
+const bool USAR_MPU = true;
 
 const bool IGNORAR_INDICADOR = false;
 const bool IGNORAR_MEDIO     = true; // Dedo médio com defeito, ignorar leituras.
@@ -58,28 +51,24 @@ Letra tabela[] = {
   {"B", {    8,  0,  0,  0,  0},  OR_QUALQUER, MV_QUALQUER},
   {"L", {    0,  0,  8,  8,  8},  OR_QUALQUER, MV_QUALQUER},
   {"W", {    8,  0,  0,  0,  8},  OR_QUALQUER, MV_QUALQUER},
-
   {"C", {    1,  1,  1,  1,  1},  OR_QUALQUER, MV_QUALQUER},
   {"X", {    8,  1,  2,  2,  2},  OR_QUALQUER, MV_QUALQUER},
   {"O", {    2,  2,  2,  2,  2},  OR_QUALQUER, MV_QUALQUER},
-
   {"D", {    8,  0,  8,  8,  8},  OR_CIMA,     MV_PARADO},
   {"Q", {    8,  0,  8,  8,  8},  OR_BAIXO,    MV_PARADO},
   {"U", {    8,  0,  0,  8,  8},  OR_QUALQUER, MV_PARADO},
   {"P", {    8,  0,  0,  8,  8},  OR_BAIXO,    MV_PARADO},
-
   {"J", {    8,  8,  8,  8,  0},  OR_QUALQUER, MV_MOVENDO},
   {"H", {    8,  0,  0,  8,  8},  OR_QUALQUER, MV_MOVENDO},
-
   {"I", {    8,  8,  8,  8,  0},  OR_QUALQUER, MV_PARADO},
-  {"te amo", {    0,  0,  0,  1,  0},  OR_QUALQUER, MV_PARADO},  // Sinal "te amo"
-  {"sim",      {    8,  8,  8,  8,  8},  OR_QUALQUER, MV_MOVENDO}, // Mão fechada + mov
-  {"como",     {    1,  1,  1,  8,  8},  OR_QUALQUER, MV_MOVENDO}, // Garras / movendo
-  {"onde",     {    8,  0,  8,  8,  8},  OR_LADO,     MV_PARADO},  // Só o indicador?
-  {"pare",     {    0,  0,  0,  0,  0},  OR_QUALQUER, MV_PARADO},  // Mão aberta / parada
-  {"ola",      {    0,  0,  0,  0,  0},  OR_QUALQUER, MV_MOVENDO}, // Mão aberta + mov
-  {"não",      {    8,  0,  0,  8,  8},  OR_LADO,     MV_MOVENDO}, // Balançando indicador/médio
-  {"obrigado", {    0,  0,  0,  0,  0},  OR_CIMA,     MV_PARADO},  // Mão aberta apontada p/ cima
+  {"te amo", {    0,  0,  0,  1,  0},  OR_QUALQUER, MV_PARADO}, 
+  {"sim",      {    8,  8,  8,  8,  8},  OR_QUALQUER, MV_MOVENDO}, 
+  {"como",     {    1,  1,  1,  8,  8},  OR_QUALQUER, MV_MOVENDO}, 
+  {"onde",     {    8,  0,  8,  8,  8},  OR_LADO,     MV_PARADO},  
+  {"pare",     {    0,  0,  0,  0,  0},  OR_QUALQUER, MV_PARADO},  
+  {"ola",      {    0,  0,  0,  0,  0},  OR_QUALQUER, MV_MOVENDO}, 
+  {"não",      {    8,  0,  0,  8,  8},  OR_LADO,     MV_MOVENDO}, 
+  {"obrigado", {    0,  0,  0,  0,  0},  OR_CIMA,     MV_PARADO},  
 };
 
 const int N_LETRAS = sizeof(tabela) / sizeof(tabela[0]);
@@ -91,8 +80,7 @@ int   estadoDedos[5];
 String  letraAtual = "?";
 String  letraConfirmada = "?";
 float roll = 0, pitch = 0;
-int16_t AcX, AcY, AcZ;
-int16_t GyX, GyY, GyZ;
+int16_t AcX, AcY, AcZ, GyX, GyY, GyZ;
 float gyroMag = 0;
 int   orientacao = OR_LADO;
 bool  emMovimento = false;
@@ -102,14 +90,21 @@ const float LIMIAR_MOV   = 60.0;
 const int   LIMIAR_CIMA  = 45;
 const int   LIMIAR_BAIXO = -45;
 const unsigned long JANELA_MOV = 500;
-
 unsigned long ultimoMovimento = 0;
 
 String  ultimaLeitura = "?";
 unsigned long tempoLeitura = 0;
 const unsigned long TEMPO_ESTAVEL = 250;
 
-void lerDedos() {
+String letraEnviada = "";
+unsigned long ultimoEnvioFB = 0;
+const unsigned long HEARTBEAT_FB = 2000;
+WiFiClientSecure clientFB;
+HTTPClient       httpsFB;
+bool             fbIniciado = false;
+
+// Função isolada apenas para ler e alimentar o filtro de média móvel
+void lerSensoresBruto() {
   int raw[5];
   raw[0] = analogRead(pinPolegar);
   raw[1] = analogRead(pinIndicador);
@@ -127,8 +122,62 @@ void lerDedos() {
     }
     valDedos[i] = soma / FILTRO_TAMANHO;
   }
+}
+
+// Rotina dinâmica que roda apenas no setup
+void calibrarSensores() {
+  Serial.println("\n========================================");
+  Serial.println("  INICIANDO CALIBRACAO DA LUVA SENSORIAL");
+  Serial.println("========================================");
+  
+  // Passo 1: Mão Aberta
+  Serial.println("\n[PASSO 1] ABRA A MAO COMPLETAMENTE e mantenha os dedos esticados!");
+  Serial.println("Capturando em 5 segundos...");
+  delay(1000); Serial.println("4..."); delay(1000); Serial.println("3...");
+  delay(1000); Serial.println("2..."); delay(1000); Serial.println("1..."); delay(1000);
+  
+  int valAberto[5];
+  // Roda algumas vezes para encher o buffer do filtro com os dados atuais
+  for(int i = 0; i < 20; i++) { lerSensoresBruto(); delay(20); }
+  for(int i = 0; i < 5; i++) valAberto[i] = valDedos[i];
+  Serial.println("-> Valores de MAO ABERTA salvos!");
+
+  // Passo 2: Mão Fechada
+  Serial.println("\n[PASSO 2] FECHE A MAO COMPLETAMENTE (faca um punho forte)!");
+  Serial.println("Capturando em 5 segundos...");
+  delay(1000); Serial.println("4..."); delay(1000); Serial.println("3...");
+  delay(1000); Serial.println("2..."); delay(1000); Serial.println("1..."); delay(1000);
+  
+  int valFechado[5];
+  for(int i = 0; i < 20; i++) { lerSensoresBruto(); delay(20); }
+  for(int i = 0; i < 5; i++) valFechado[i] = valDedos[i];
+  Serial.println("-> Valores de MAO FECHADA salvos!\n");
+
+  // Calcula os limites dinamicamente (Considerando que ao fechar a resistência diminui)
+  for(int i = 0; i < 5; i++) {
+    int diferenca = valAberto[i] - valFechado[i];
+    
+    // Se o dedo está ignorado ou o sensor travado, previne divisão por zero ou bugs
+    if (diferenca < 10 && diferenca > -10) diferenca = 50; 
+    
+    // Limiar Meio: Caiu 35% a partir do estado aberto
+    limiarMeio[i] = valAberto[i] - (diferenca * 0.35);
+    // Limiar Dobrado: Caiu 75% a partir do estado aberto
+    limiarDobrado[i] = valAberto[i] - (diferenca * 0.75);
+    
+    Serial.printf("Dedo %d -> Ab: %d | Meio: %d | Fchd: %d | Lim: %d\n", 
+                  i, valAberto[i], limiarMeio[i], limiarDobrado[i], valFechado[i]);
+  }
+  Serial.println("========================================");
+  Serial.println("   CALIBRACAO CONCLUIDA! PODE USAR!     ");
+  Serial.println("========================================\n");
+}
+
+void lerDedos() {
+  lerSensoresBruto(); // Puxa os valores limpos do filtro
 
   for (int i = 0; i < 5; i++) {
+    // Usa as variáveis que foram preenchidas no setup()
     if (valDedos[i] <= limiarDobrado[i])   estadoDedos[i] = 2; // Fechado
     else if (valDedos[i] <= limiarMeio[i]) estadoDedos[i] = 1; // Curvado
     else                                   estadoDedos[i] = 0; // Aberto
@@ -207,14 +256,6 @@ void atualizarLetraConfirmada() {
   }
 }
 
-String letraEnviada = "";
-unsigned long ultimoEnvioFB = 0;
-const unsigned long HEARTBEAT_FB = 2000;
-
-WiFiClientSecure clientFB;
-HTTPClient       httpsFB;
-bool             fbIniciado = false;
-
 void enviarFirebase() {
   if (WiFi.status() != WL_CONNECTED) return;
 
@@ -277,6 +318,13 @@ void setup() {
   Serial.begin(115200);
   delay(300);
 
+  // Inicializa o ADC antes de ler qualquer coisa
+  analogReadResolution(12);
+  analogSetAttenuation(ADC_11db);
+
+  // Chama a nossa nova rotina de calibração dinâmica!
+  calibrarSensores();
+
   if (USAR_MPU) {
     pinMode(21, INPUT_PULLUP);
     pinMode(22, INPUT_PULLUP);
@@ -307,9 +355,6 @@ void setup() {
     mpuOk = false;
   }
 
-  analogReadResolution(12);
-  analogSetAttenuation(ADC_11db);
-
   Serial.print("Conectando no Wi-Fi");
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_SENHA);
@@ -333,7 +378,7 @@ void setup() {
 
 void loop() {
   lerDedos();
-  lerMPU();  // Sempre chamar - lerMPU() sabe como lidar com USAR_MPU desabilitado
+  lerMPU(); 
 
   if (MODO_CALIBRACAO) {
     Serial.printf("POL:%4d IND:%4d MED:%4d ANE:%4d MIN:%4d | estados:%d%d%d%d%d | pitch:%.0f gyro:%.0f %s\n",
