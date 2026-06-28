@@ -2,9 +2,10 @@
 
 # 🧤 SignGlove — Firmware ESP32
 
-Luva tradutora de Libras: lê os sensores da mão, reconhece a **letra** e envia
-para o **Firebase Realtime Database**, de onde a [interface web SignGlove](./signglove/)
-exibe em tempo real.
+Luva tradutora de Libras: lê os sensores da mão, reconhece **letras e palavras completas** e envia
+para o **Firebase Realtime Database**, de onde a interface web exibe em tempo real.
+
+⚠️ **Repositório do Site:** A interface web consumida por este projeto e hospedada na Vercel está disponível no repositório [https://github.com/Macedo-Kayki/signglove](https://github.com/Macedo-Kayki/signglove).
 
 <img src="https://img.shields.io/badge/ESP32-Arduino-22C55E?style=for-the-badge&labelColor=0F172A" />
 <img src="https://img.shields.io/badge/PlatformIO-FF7F00?style=for-the-badge&labelColor=0F172A" />
@@ -17,9 +18,10 @@ exibe em tempo real.
 ## 📦 O que este firmware faz
 
 1. Lê **5 sensores de flexão** (um por dedo) e o **MPU6050** (acelerômetro + giroscópio).
-2. Reconhece a letra combinando **pose dos dedos + orientação + movimento**.
-3. Envia a letra (e os sensores) para o Firebase via **HTTPS**.
+2. Reconhece a letra ou palavra combinando **pose dos dedos + orientação + movimento**.
+3. Envia o texto reconhecido (e os sensores) para o Firebase via **HTTPS**.
 4. Sobe um endpoint local opcional `http://<ip>/dados` (JSON) para debug.
+5. Permite controle e simulação sem luva usando o painel mobile `controle.html`.
 
 ---
 
@@ -149,7 +151,7 @@ Firebase: 'A' flex:63 mov:12 -> HTTP 200
 
 ---
 
-## 🔤 Letras reconhecidas (18)
+## 🔤 Letras e Palavras reconhecidas
 
 O reconhecimento combina quatro fontes:
 
@@ -170,7 +172,7 @@ juntos/separados/cruzados), `E`/`M`/`N`/`O`/`T` (viram punho/curva = `S`/`C`), e
 
 ```json
 {
-  "letra": "A",     // letra reconhecida (ou "?")
+  "letra": "A",     // letra ou palavra reconhecida (ou "?")
   "flex": 63,       // flexão média dos dedos (%)
   "mov": 12,        // intensidade do movimento (%)
   "incl": 18,       // inclinação da mão (graus)

@@ -139,3 +139,14 @@ Coluna "estados esperados" = o que o `estados` deve mostrar pra letra fechar
 ### Ordem recomendada
 Dedos → orientação → movimento → conferir letras. Os sinais mais chatos de acertar
 são **C** e **X** (dependem do estado `1` curvado), então deixe eles por último.
+
+---
+
+## 6. Calibrando Palavras Inteiras
+
+Além de letras, o firmware agora suporta **palavras inteiras** (como `sim`, `não`, `te amo`, `ola`, etc.). Elas ficam localizadas no final do array `Letra tabela[]` dentro de `src/main.cpp`.
+
+Para calibrar as palavras, o processo é o mesmo das letras:
+1. Com o `MODO_CALIBRACAO = true`, faça com a sua mão o gesto exato que você quer associar a cada palavra.
+2. Olhe no Serial Monitor qual a string de `estados` resultante (ex: `11100`), a orientação e o movimento lidos pela luva.
+3. Copie esses valores exatos e substitua os valores provisórios que estão na linha de cada palavra no `main.cpp`.
